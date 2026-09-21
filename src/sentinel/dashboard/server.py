@@ -1698,6 +1698,31 @@ const STRAT_INFO={
         +pcardHTML(50,'Live win rate','',{suf:'%'})+pcardHTML(0.5,'Profit factor','',{dec:1})
         +pcardHTML(1141,'ACE loss ($)','red',{int:1})+pcardHTML(52,'Live trades','',{}),
     disclaim:'⚠ Trend-following IS a durable edge, but the &ldquo;+75%/yr&rdquo; backtest was survivorship-flattered — on point-in-time data momentum-style books drop hard (+37% &rarr; +9.5%). Live it&rsquo;s &minus;7.5%, essentially all from one ACE short-squeeze now capped by a per-name stop; the current book is up. Real expectation: <b>modest, lumpy, positive over time</b> once it earns the ACE hit back. Trust the live number, not the backtest. Not a guarantee.'
+  },
+  consensus:{
+    tag:'CONSENSUS · AGREEMENT FILTER · HYPERLIQUID',
+    title:'Sentinel&nbsp;Edge <span class="tchip cy">Consensus</span>',
+    sub:'Trades <b>only the names that at least two of the other three books agree on</b>. Not a new signal — a filter that removes each book&rsquo;s solo picks, which is where the losses were.',
+    stats:[{v:1.35,dec:2,l:'backtest Sharpe (vs 0.88)'},{v:13.5,dec:1,suf:'%',l:'max drawdown'},{v:0.45,dec:2,l:'turnover / day'},{v:0,l:'live trades (new)'}],
+    ideaTitle:'Three books vote. Trade the agreement. Sit out the rest.',
+    steps:stepHTML(1,'🗳️','Three independent votes','Each day champion (30-day momentum, regime-gated), carry (14-day momentum + funding) and trend (45-day range position) each name their longs and shorts. Computed from the same functions those books run live.')
+        +stepHTML(2,'🤝','Only agreement gets traded','A coin is opened when <b>two or more</b> books agree on its direction, and held while one still does (hysteresis, so a name is not flipped on a single day&rsquo;s noise). Equal-weight, at most 8 a side, 30% per-name stop.')
+        +stepHTML(3,'💤','Cash is a position','Names only one book wants are not traded at all. Over 440 days those solo picks lost ~10 bps/day while agreed names made ~15. The edge is in what this book refuses to hold.'),
+    why:whyHTML('Where it came from','Seventy-three days of live ledgers across champion, carry and trend showed each book earning on the names it shared with the others and losing on the ones it picked alone. Consensus makes that filter explicit.')
+       +whyHTML('What the test said','Same panel, live costs, live stop: Sharpe <b>1.35</b> against <b>0.88</b> for an equal-weight of the three books; still ahead at 2&times; and 3&times; fees; split-half 1.35 / 1.35; shuffling the votes drops it to &minus;1.50 (p&nbsp;=&nbsp;0.000). Deflated Sharpe 0.863 — marginal, the ceiling everything hits on 440 days.')
+       +whyHTML('Honest status','It <b>replaces carry and trend</b> (correlation +0.65 / +0.73 to them) and sits beside champion (+0.09). Carry is retired; trend runs alongside as the comparison. Champion backtested at 0.35 and is +55% live; carry backtested at 0.94 and lost. <b>Backtests here indicate, they do not predict.</b> Judge this on ~100 closed trades.'),
+    arch:archHTML([
+      {c:'#4a9eff',n:'Signal',d:'Three votes per coin: champion, carry, trend — same functions the live books call'},
+      {c:'#a78bfa',n:'Portfolio',d:'Long at &ge;2 votes, short at &le;&minus;2 · hold while &ge;1 · equal-weight · max 8/side'},
+      {c:'#ff7a8a',n:'Risk',d:'30% per-name stop · vol-target · drawdown throttle · long-only allowed on a no-short day'},
+      {c:'#4be0b0',n:'Execution',d:'Reconcile &rarr; maker orders &rarr; paper Hyperliquid · execution policy in shadow'},
+      {c:'#ffd166',n:'State &amp; Dashboard',d:'SQLite · equity curve · trades · this dashboard'},
+    ]),
+    numNote:'backtest, 440 days, 80 coins, live costs · paper from 21 Sep 2026 · trust the ledger, not the backtest',
+    perf:pcardHTML(1.35,'Backtest Sharpe','',{dec:2})+pcardHTML(0.88,'Equal-wt of 3 books','',{dec:2})
+        +pcardHTML(13.5,'Max drawdown','red',{dec:1,suf:'%'})+pcardHTML(0.63,'Sharpe at 3x fees','',{dec:2})
+        +pcardHTML(0.45,'Turnover / day','',{dec:2})+pcardHTML(0.863,'Deflated Sharpe','',{dec:3}),
+    disclaim:'⚠ The strongest backtest this desk has produced — and still a backtest, on a panel that only contains coins that survived. Deflated Sharpe 0.863 is marginal. It went live in paper on 21 Sep 2026 with zero trades of history. Everything above is what it <i>should</i> do; the trade ledger is what it <i>does</i>. Not a guarantee.'
   }
 };
 const STRAT_PORT={funding:8787,champion:8788,carry:8789,trend:8790,consensus:8789};
