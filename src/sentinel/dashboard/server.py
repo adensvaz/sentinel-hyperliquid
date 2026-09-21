@@ -463,7 +463,7 @@ def _signals_md(cfg: Config) -> str:
         return f"# Sentinel Edge — Signals\n\nUnavailable at {now}.\n"
     strat = s.get("strategy", "neutral")
     strat_name = {"funding": "Funding Harvest (delta-neutral)", "champion": "Momentum + Regime (Champion)",
-                  "carry": "Funding Carry", "trend": "Trend (CTA)"}.get(strat, strat)
+                  "carry": "Funding Carry", "trend": "Trend (CTA)", "consensus": "Consensus"}.get(strat, strat)
     pnl = s.get("pnl", 0.0); pnl_pct = s.get("pnl_pct", 0.0); eq = s.get("equity", 0.0)
     dd = s.get("drawdown_pct", 0.0); book = s.get("book", [])
     r = s.get("regime") or {}
@@ -1700,7 +1700,7 @@ const STRAT_INFO={
     disclaim:'⚠ Trend-following IS a durable edge, but the &ldquo;+75%/yr&rdquo; backtest was survivorship-flattered — on point-in-time data momentum-style books drop hard (+37% &rarr; +9.5%). Live it&rsquo;s &minus;7.5%, essentially all from one ACE short-squeeze now capped by a per-name stop; the current book is up. Real expectation: <b>modest, lumpy, positive over time</b> once it earns the ACE hit back. Trust the live number, not the backtest. Not a guarantee.'
   }
 };
-const STRAT_PORT={funding:8787,champion:8788,carry:8789,trend:8790};
+const STRAT_PORT={funding:8787,champion:8788,carry:8789,trend:8790,consensus:8791};
 const STRAT_ICON={funding:'🌾',champion:'⚡',carry:'💰',trend:'📈'};
 const STRAT_LABEL={funding:'🌾 Funding Harvest',champion:'⚡ Momentum (Champion)',carry:'💰 Funding Carry',trend:'📈 Trend'};
 const STRAT_SHORT={funding:'Funding Harvest',champion:'Champion',carry:'Carry',trend:'Trend'};
@@ -1710,7 +1710,7 @@ const STRAT_DOT={funding:'#ff8a5c',champion:'#ffd166',carry:'#4be0b0',trend:'#3f
 // and hedging a perp with a perp means paying funding to collect funding (measured: 16.0%/yr
 // collected against 15.0%/yr paid, a 0.9%/yr spread). Its definitions are kept above so
 // re-enabling is one entry here, but it must not appear in the nav while it is not trading.
-const STRAT_LIVE=['champion','carry','trend'];
+const STRAT_LIVE=['champion','carry','trend','consensus'];
 function stratUrl(k){const h=location.hostname||'localhost';return 'http://'+h+':'+STRAT_PORT[k];}
 function switchTo(k){if(k!==CUR_STRAT) location.href=stratUrl(k);}
 function toggleSwitcher(e){e.stopPropagation();$('navSwitcher').classList.toggle('open');}

@@ -214,6 +214,14 @@ class TrendCfg(BaseModel):
                                    # 45 is chosen for lowest turnover and best cost tolerance.
 
 
+class ConsensusCfg(BaseModel):
+    """Trade only what champion, carry and trend agree on. See strategy/consensus.py."""
+    enter: int = 2                 # a name needs this many agreeing votes to be OPENED
+    hold: int = 1                  # ...and is KEPT while it still has this many (hysteresis)
+    max_per_side: int = 8          # cap each sleeve; strongest agreement kept if it binds
+    target_gross: float = 1.0      # split across sleeves when both exist; all-long on a no-short day
+
+
 class GridCfg(BaseModel):
     """Grid / market-making book — a RESTING-LIMIT order book per coin (strategy/grid_book.py, driven by
     engine.run_grid_once). Resting buy limits below a per-coin anchor fill on the bar low (buy the dip),
@@ -302,7 +310,7 @@ class Config(BaseModel):
     mode: Literal["paper", "live"] = "paper"
     # neutral = market-neutral momentum book; champion = directional momentum+regime; carry = funding-carry+momentum
     # trend = dollar-neutral CTA; grid = market-making (retired); funding = delta-neutral funding harvest
-    strategy: Literal["neutral", "champion", "carry", "trend", "grid", "funding"] = "neutral"
+    strategy: Literal["neutral", "champion", "carry", "trend", "grid", "funding", "consensus"] = "neutral"
     exchange: ExchangeCfg = Field(default_factory=ExchangeCfg)
     capital_usdt: Optional[float] = 10_000.0
     # Portfolio-level allocation weight (0.0-1.0). When a risk-parity allocator runs
@@ -314,6 +322,7 @@ class Config(BaseModel):
     champion: ChampionCfg = Field(default_factory=ChampionCfg)
     carry: CarryCfg = Field(default_factory=CarryCfg)
     trend: TrendCfg = Field(default_factory=TrendCfg)
+    consensus: ConsensusCfg = Field(default_factory=ConsensusCfg)
     grid: GridCfg = Field(default_factory=GridCfg)
     funding: FundingCfg = Field(default_factory=FundingCfg)
     whales: WhalesCfg = Field(default_factory=WhalesCfg)

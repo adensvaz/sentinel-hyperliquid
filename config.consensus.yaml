@@ -1,0 +1,88 @@
+# ============================================================================
+# CONSENSUS — trade only the names champion, carry and trend agree on.
+#
+# Seventy-three days of live ledgers showed each book earning on the names it shared with the
+# others and losing on the names it picked alone (+15 bps/day on agreed names, -10 on solo picks).
+# This book is that filter made explicit. It computes all three votes itself from the same
+# functions the live books use, so it does not depend on those services running.
+#
+# It REPLACES carry and trend (correlation +0.65 / +0.73 to them) and sits beside champion (+0.09).
+# Backtest, 440d, live costs, live 30% stop: Sharpe 1.35 vs 0.88 for the three books equal-weighted;
+# 0.63 vs -0.04 at 3x fees; split-half 1.35 / 1.35; permutation p=0.000; Deflated Sharpe 0.863.
+# Paper first. Judge it against carry and trend on ~100 closed trades, not on this comment.
+# ============================================================================
+mode: paper
+strategy: consensus
+capital_usdt: 10000
+
+exchange:
+  venue: hyperliquid
+  hyperliquid_info_url: https://api.hyperliquid.xyz/info
+
+universe:
+  top_n: 30                    # carry's universe; trend uses the same; champion's 24 is a subset
+  min_quote_volume_usdt: 200000
+  min_listing_days: 90
+  denylist: [ACE]
+
+consensus:
+  enter: 2                     # a name needs two of three books agreeing to be opened
+  hold: 1                      # ...and is kept while one still agrees. HYSTERESIS: without it
+                               # turnover was 0.87/day and Sharpe at 3x fees 0.36; with it 0.45/day
+                               # and 0.63. Same idea as carry's keep_buffer, same reason.
+  max_per_side: 8
+  target_gross: 1.0
+
+# ---- the three voters, pinned to their LIVE settings so a vote here is what that book would do
+champion:
+  top_k: 5
+  lookback: 30
+  regime_ma: 100
+  dual_confirm: false
+  intraday_regime_check: true  # a regime flip changes champion's vote, so re-read it intraday
+carry:
+  top_k: 8
+  lookback: 14
+  keep_buffer: 4               # unused by the vote (consensus has its own hysteresis); kept for parity
+  funding_avg_cycles: 3
+trend:
+  top_k: 8
+  score_mode: breakout
+  donchian_period: 45
+
+execution:
+  order_type: limit
+  maker: true
+  maker_fill_ratio: 0.5
+  slippage_bps: 5
+  time_in_force: IOC
+  min_trade_notional: 15
+  min_rebalance_frac: 0.10
+  margin_mode: isolated
+  position_mode: net
+
+risk:
+  max_gross_leverage: 10
+  max_net_exposure: 1.0        # long-only is a legitimate state (no consensus shorts) — do not clamp it
+  max_drawdown_pct: 45
+  max_position_loss_pct: 12    # % of EQUITY — effectively a catastrophe backstop only
+  position_stop_pct: 30        # the stop that actually fires: 30% of the position's own value
+  funding_abs_max: 1.0
+  pause_hours: 24
+  monitor_seconds: 60
+  dynamic_risk: true
+  vol_target_daily: 0.018
+  vol_lookback: 21
+  dd_throttle_start: 0.12
+  dd_throttle_full: 0.35
+  min_risk_scale: 0.25
+  crash_guard: false
+
+schedule:
+  rebalance_minutes: 1440
+  rebalance_hour_utc: 14
+
+state:
+  db_path: data/hl_consensus.db
+  equity_csv: data/hl_consensus_equity.csv
+  log_path: data/hl_consensus.log

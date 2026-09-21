@@ -1,0 +1,14 @@
+[Unit]
+Description=Sentinel Consensus Dashboard (Hyperliquid, paper)
+After=network.target
+
+[Service]
+Type=simple
+User=a_vaz
+WorkingDirectory=/home/a_vaz/sentinel
+ExecStart=/home/a_vaz/sentinel/.venv/bin/python run.py dashboard --config config.consensus.yaml --port 8791 --no-open
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

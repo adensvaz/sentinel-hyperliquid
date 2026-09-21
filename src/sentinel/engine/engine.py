@@ -33,6 +33,7 @@ from ..signal.whale_tracker import WhaleTracker, map_bias_to_symbols
 from ..state.store import Store
 from ..strategy import grid_book
 from ..strategy.funding_carry import FundingCarryStrategy
+from ..strategy.consensus import ConsensusStrategy
 from ..strategy.trend import TrendStrategy
 from ..portfolio.treasury import Treasury
 from ..strategy.momentum_regime import MomentumRegimeStrategy, regime_on
@@ -87,6 +88,7 @@ class Engine:
         self.champion = MomentumRegimeStrategy(cfg)   # directional momentum+regime (used when cfg.strategy=='champion')
         self.carry = FundingCarryStrategy(cfg)        # funding-carry+momentum, market-neutral (cfg.strategy=='carry')
         self.trend = TrendStrategy(cfg)               # dollar-neutral cross-sectional trend/CTA (cfg.strategy=='trend')
+        self.consensus = ConsensusStrategy(cfg)       # trade only what the other three agree on (cfg.strategy=='consensus')
         self.treasury = Treasury(cfg)                 # money manager: weekly profit sweep into a safe vault
         self.store = Store(cfg.state.db_path, cfg.state.equity_csv)
         self.registry: Optional[ContractRegistry] = None
@@ -258,6 +260,13 @@ class Engine:
             ch = self.cfg.champion
             self.base_interval = "1day"
             self.history_bars = min(300, max(ch.regime_ma, ch.trend_ma, ch.lookback, ch.breadth_ma) + 30)
+        elif self.cfg.strategy == "consensus":
+            # every vote needs its own window; the regime brake's 100-day MA is the deepest
+            c = self.cfg
+            self.base_interval = "1day"
+            self.history_bars = min(300, max(c.champion.regime_ma, c.champion.lookback, c.carry.lookback,
+                                             getattr(c.trend, "donchian_period", 45),
+                                             c.universe.min_listing_days + 5) + 30)
         elif self.cfg.strategy in ("carry", "trend"):
             # carry / trend rank on DAILY bars — force daily with enough history.
             self.base_interval = "1day"
@@ -459,6 +468,18 @@ class Engine:
                 if book and book.positions:
                     self._apply_scales(book, net_scales({s: p.target_notional for s, p in book.positions.items()},
                                                         equity, cfg.risk.max_net_exposure))
+            elif cfg.strategy == "consensus":
+                # CONSENSUS: only names that >=2 of {champion, carry, trend} agree on. Dollar-neutral
+                # when both sleeves exist, long-only on the rare day nothing qualifies as a short —
+                # so no beta-hedge and no net clamp here (max_net_exposure is 1.0 in its config), and
+                # the votes are computed from the same functions the three books run.
+                favg = self.store.recent_funding_avg(self.mode, cfg.carry.funding_avg_cycles)
+                fsig = {s: favg.get(s, funding.get(s)) for s in funding}
+                ref = data.get(self.btc_sym)
+                book = self.consensus.build_book({s: d.closes for s, d in data.items()}, fsig, prices,
+                                                 self.registry, equity, gross_scale=gscale,
+                                                 held=self.broker.positions(),
+                                                 btc_closes=(ref.closes if ref else None))
             else:
                 ta_scores = ({s: ta_consensus(d.closes) for s, d in data.items()}
                              if cfg.signal.ta_veto > 0 else None)
@@ -1015,7 +1036,8 @@ class Engine:
         Never raises, and self-throttles — the poll is cheap but the tick is every 60s.
         """
         c = self.cfg
-        if c.strategy != "champion" or not getattr(c.champion, "intraday_regime_check", False):
+        if c.strategy not in ("champion", "consensus") \
+                or not getattr(c.champion, "intraday_regime_check", False):
             return False
         now = time.time()
         try:
