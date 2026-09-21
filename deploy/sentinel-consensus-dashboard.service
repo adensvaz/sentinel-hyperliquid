@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=a_vaz
 WorkingDirectory=/home/a_vaz/sentinel
-ExecStart=/home/a_vaz/sentinel/.venv/bin/python run.py dashboard --config config.consensus.yaml --port 8791 --no-open
+ExecStart=/home/a_vaz/sentinel/.venv/bin/python run.py dashboard --config config.consensus.yaml --port 8789 --no-open
 Restart=always
 RestartSec=10
 

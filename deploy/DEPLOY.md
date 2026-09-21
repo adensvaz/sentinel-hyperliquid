@@ -10,7 +10,7 @@ sudo systemctl enable --now sentinel-carry sentinel-carry-dashboard
 sudo systemctl status sentinel-carry sentinel-carry-dashboard --no-pager
 ```
 
-Ports: **funding 8787** · champion 8788 · carry 8789 · trend 8790
+Ports: **funding 8787** · champion 8788 · **consensus 8789** (took carry's port when carry was retired) · trend 8790
 Remember to open the GCP firewall for any new port.
 
 ---
