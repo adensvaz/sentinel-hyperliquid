@@ -227,11 +227,31 @@ class Store:
                 iso = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(ts))
                 f.write(f"{ts},{iso},{mode},{equity:.4f},{gross:.4f},{net:.4f},{drawdown_pct:.4f}\n")
 
-    def equity_series(self, mode: str, limit: int = 5000) -> list[dict]:
-        rows = self.conn.execute(
-            "SELECT ts,equity,gross,net,drawdown_pct FROM equity_curve WHERE mode=? ORDER BY ts ASC LIMIT ?",
-            (mode, limit)).fetchall()
-        return [dict(r) for r in rows]
+    def equity_series(self, mode: str, full_days: float = 8.0) -> list[dict]:
+        """The equity curve for the dashboard: every tick for the last `full_days`, one point per
+        day (that day's last tick) for everything older.
+
+        This used to be `ORDER BY ts ASC LIMIT 5000`, which returns the OLDEST 5,000 rows. At ~96
+        ticks a day every book crossed that line around day 52, after which the newest data was
+        silently cut off. Champion's 7D view then showed a single point — the synthetic "now" the
+        dashboard appends — while the table underneath held 673 rows for that week. The headline
+        numbers stayed correct because they are computed live, which is exactly what made it hard
+        to notice: the chart died and nothing else did.
+
+        Down-sampling the old tail instead of truncating it means the payload stays small forever
+        (~1 row/day plus ~96/day for the recent window) and the ALL view keeps its full history.
+        The chart already collapses 30D/ALL to daily client-side, so it loses nothing."""
+        cutoff = time.time() - full_days * 86_400
+        old = self.conn.execute(
+            "SELECT ts,equity,gross,net,drawdown_pct,MAX(ts) AS _m FROM equity_curve "
+            "WHERE mode=? AND ts<? GROUP BY CAST(ts/86400 AS INTEGER) ORDER BY ts ASC",
+            (mode, cutoff)).fetchall()
+        recent = self.conn.execute(
+            "SELECT ts,equity,gross,net,drawdown_pct FROM equity_curve "
+            "WHERE mode=? AND ts>=? ORDER BY ts ASC",
+            (mode, cutoff)).fetchall()
+        keep = ("ts", "equity", "gross", "net", "drawdown_pct")
+        return [{k: r[k] for k in keep} for r in old] + [dict(r) for r in recent]
 
     def last_equity(self, mode: str) -> Optional[float]:
         r = self.conn.execute("SELECT equity FROM equity_curve WHERE mode=? ORDER BY ts DESC LIMIT 1",

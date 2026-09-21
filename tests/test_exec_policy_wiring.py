@@ -225,3 +225,34 @@ def test_trend_stays_invested_when_every_coin_is_in_an_uptrend():
     assert len(longs) == K and len(shorts) == K, "book must be a balanced top-K / bottom-K"
     # and it must short the WEAKEST names, not the strongest
     assert min(p.score for p in longs) > max(p.score for p in shorts)
+
+
+def test_equity_series_keeps_the_newest_data_however_long_the_book_runs(tmp_path):
+    """Reproduces the champion 7D outage: 74 days of 15-minute ticks (~7,100 rows) used to come
+    back as the OLDEST 5,000 via `ORDER BY ts ASC LIMIT 5000`, silently dropping the last three
+    weeks. The 7D chart then held one point while the table held 673 for that week."""
+    import time
+    from sentinel.state.store import Store
+
+    st = Store(str(tmp_path / "t.db"))
+    now = int(time.time())
+    step = 900                                            # one tick every 15 min
+    n = 74 * 96                                           # 74 days -> 7,104 rows, past the old cap
+    st.conn.executemany(
+        "INSERT INTO equity_curve(ts,mode,equity,gross,net,drawdown_pct) VALUES(?,?,?,?,?,?)",
+        [(now - (n - i) * step, "paper", 10_000 + i, 0.0, 0.0, 0.0) for i in range(n)])
+    st.conn.commit()
+
+    s = st.equity_series("paper")
+    ts = [r["ts"] for r in s]
+    assert ts == sorted(ts), "must be chronological"
+
+    week = [r for r in s if r["ts"] >= now - 7 * 86400]
+    assert len(week) >= 7 * 96 - 2, f"last 7 days must be at full resolution, got {len(week)}"
+    assert s[-1]["equity"] == 10_000 + n - 1, "the NEWEST row must be present"
+
+    older = [r for r in s if r["ts"] < now - 8 * 86400]
+    assert 60 <= len(older) <= 70, f"older history collapses to ~1/day, got {len(older)}"
+    assert s[0]["ts"] <= now - 73 * 86400, "the ALL view must still reach back to day one"
+    assert len(s) < 1200, "payload stays small no matter how long the book runs"
+    assert set(s[0].keys()) == {"ts", "equity", "gross", "net", "drawdown_pct"}
