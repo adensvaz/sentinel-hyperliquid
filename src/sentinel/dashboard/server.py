@@ -1701,10 +1701,10 @@ const STRAT_INFO={
   }
 };
 const STRAT_PORT={funding:8787,champion:8788,carry:8789,trend:8790,consensus:8789};
-const STRAT_ICON={funding:'🌾',champion:'⚡',carry:'💰',trend:'📈'};
-const STRAT_LABEL={funding:'🌾 Funding Harvest',champion:'⚡ Momentum (Champion)',carry:'💰 Funding Carry',trend:'📈 Trend'};
-const STRAT_SHORT={funding:'Funding Harvest',champion:'Champion',carry:'Carry',trend:'Trend'};
-const STRAT_DOT={funding:'#ff8a5c',champion:'#ffd166',carry:'#4be0b0',trend:'#3f80ba'};
+const STRAT_ICON={funding:'🌾',champion:'⚡',carry:'💰',trend:'📈',consensus:'🤝'};
+const STRAT_LABEL={funding:'🌾 Funding Harvest',champion:'⚡ Momentum (Champion)',carry:'💰 Funding Carry',trend:'📈 Trend',consensus:'🤝 Consensus'};
+const STRAT_SHORT={funding:'Funding Harvest',champion:'Champion',carry:'Carry',trend:'Trend',consensus:'Consensus'};
+const STRAT_DOT={funding:'#ff8a5c',champion:'#ffd166',carry:'#4be0b0',trend:'#3f80ba',consensus:'#b08cff'};
 // The books actually running. Funding Harvest is RETIRED: it needs a spot leg to be
 // delta-neutral, HL spot has only ~8 pairs over $1M/day so a 15-name basket cannot be hedged,
 // and hedging a perp with a perp means paying funding to collect funding (measured: 16.0%/yr
